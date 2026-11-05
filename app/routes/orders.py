@@ -57,10 +57,10 @@ def all_orders():
     return jsonify([o.to_dict() for o in orders])
 
 
-@orders_bp.route("/paged", methods=["GET"])
-@require_role("manager")
-def paged_orders():
-    """List orders with limit/offset pagination. Managers and admins only."""
+@orders_bp.route("/mine/paged", methods=["GET"])
+@require_auth
+def my_orders_paged():
+    """The authenticated user's own orders, with limit/offset pagination."""
     try:
         limit = min(int(request.args.get("limit", "20")), 100)
         offset = int(request.args.get("offset", "0"))
@@ -68,7 +68,10 @@ def paged_orders():
         return jsonify({"error": "limit and offset must be integers"}), 400
     session = get_session()
     rows = session.execute(
-        text("SELECT id, user_id, status, total FROM orders ORDER BY id LIMIT :limit OFFSET :offset"),
-        {"limit": limit, "offset": offset},
+        text(
+            "SELECT id, status, total FROM orders WHERE user_id = :user_id "
+            "ORDER BY id LIMIT :limit OFFSET :offset"
+        ),
+        {"user_id": g.current_user.id, "limit": limit, "offset": offset},
     )
     return jsonify([dict(r._mapping) for r in rows])
