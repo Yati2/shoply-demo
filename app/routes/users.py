@@ -64,5 +64,5 @@ def search_users():
     if not query:
         return jsonify({"error": "invalid request"}), 400
     session = get_session()
-    users = session.query(User).filter(User.name.like("%" + query + "%")).order_by(User.id).all()
+    users = session.query(User).filter(User.name.like("%" + query.replace("%", r"\%").replace("_", r"\_") + "%", escape="\\")).order_by(User.id).all()
     return jsonify([u.to_dict() for u in users])
