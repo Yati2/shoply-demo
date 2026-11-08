@@ -64,4 +64,6 @@ def get_order(order_id):
     order = session.query(Order).get(order_id)
     if order is None:
         return jsonify({"error": "Order not found"}), 404
+    if not is_owner_or_admin(g.current_user, order.user_id):
+        return jsonify({"error": "forbidden"}), 403
     return jsonify(order.to_dict())
