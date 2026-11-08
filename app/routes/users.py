@@ -4,6 +4,7 @@ Access rules (see security-policy.md §2 and api-spec.md):
 - Users may read and update ONLY their own profile; admins may access any.
 - Listing all users requires the manager role or above.
 - Deleting users and changing roles requires the admin role.
+
 """
 
 from __future__ import annotations
@@ -53,3 +54,15 @@ def update_user(user_id: int):
         user.email = payload["email"]
     session.commit()
     return jsonify(user.to_dict(include_email=True))
+
+
+@users_bp.route("/search", methods=["GET"])
+@require_role("manager")
+def search_users():
+    """Search users by name."""
+    query = request.args.get("q", type=str)
+    if not query:
+        return jsonify({"error": "invalid request"}), 400
+    session = get_session()
+    users = session.query(User).filter(User.name.like("%" + query + "%")).order_by(User.id).all()
+    return jsonify([u.to_dict() for u in users])
