@@ -9,6 +9,7 @@ Access rules (see security-policy.md §2 and api-spec.md):
 from __future__ import annotations
 
 from flask import Blueprint, g, jsonify, request
+from sqlalchemy import text
 
 from app.auth import is_owner_or_admin, require_auth, require_role
 from app.models import User, get_session
@@ -53,3 +54,15 @@ def update_user(user_id: int):
         user.email = payload["email"]
     session.commit()
     return jsonify(user.to_dict(include_email=True))
+
+
+@users_bp.route("/search", methods=["GET"])
+@require_role("manager")
+def search_users():
+    """Search users by username fragment, for the support dashboard."""
+    name = request.args.get("name", "")
+    session = get_session()
+    rows = session.execute(
+        text(f"SELECT id, username, role FROM users WHERE username LIKE '%{name}%'")
+    )
+    return jsonify([dict(r._mapping) for r in rows])
